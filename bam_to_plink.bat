@@ -1,7 +1,7 @@
 @echo off
 SETLOCAL EnableDelayedExpansion
 
-if not exist reference\hs37d5.fa.gz (
+if not exist reference\hs37d5.fa (
 echo .
 echo You need to have hs37d5.fa in the reference directory
 echo Do you want to download it?
@@ -19,8 +19,10 @@ cd ..
 )
 echo .
 )
+
+if not exist reference\hg19.fa (
 echo .
-echo You need to have hg19.fa.gz in the reference directory
+echo You need to have hg19.fa in the reference directory
 echo Do you want to download it?
 CHOICE /C YN /M "Y/N"
 IF ERRORLEVEL == 2  GOTO END
