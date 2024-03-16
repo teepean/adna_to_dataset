@@ -29,10 +29,10 @@ read -p "Enter your choice (hs37d5 or hg19): " choice
 
 if [[ "$choice" == "hs37d5" ]]; then
     echo "Running command"
-    samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa ${bamlist_space} | pileupCaller --randomHaploid --sampleNames $array2_string --samplePopName $POPNAME -f ../positions/v42.4.1240K.snp -p ../target/$OUTPUTNAME
+    samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa.gz ${bamlist_space} | pileupCaller --randomHaploid --sampleNames $array2_string --samplePopName $POPNAME -f ../positions/v42.4.1240K.snp -p ../target/$OUTPUTNAME
 elif [[ "$choice" == "hg19" ]]; then
     echo "Running command"
-    samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa ${bamlist_space} | sed 's/chr//' | pileupCaller --randomHaploid --sampleNames $array2_string --samplePopName $POPNAME -f ../positions/v42.4.1240K.snp -p ../target/$OUTPUTNAME
+    samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa.gz ${bamlist_space} | sed 's/chr//' | pileupCaller --randomHaploid --sampleNames $array2_string --samplePopName $POPNAME -f ../positions/v42.4.1240K.snp -p ../target/$OUTPUTNAME
 else
     echo "Invalid choice"
 fi
