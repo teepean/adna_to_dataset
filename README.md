@@ -9,3 +9,7 @@ https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_
 hg19.fa.gz + fai can be downloaded from:
 
 https://omic.tech/ftp/public/3dsnp/assembly/
+
+Simple instructions:
+
+Copy all of the bams you want to include in source directory and run the program. The result will be in target subdirectory.
