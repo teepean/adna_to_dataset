@@ -1,6 +1,41 @@
 @echo off
 SETLOCAL EnableDelayedExpansion
 
+if not exist reference\hs37d5.fa.gz (
+echo .
+echo You need to have hs37d5.fa in the reference directory
+echo Do you want to download it?
+CHOICE /C YN /M "Y/N"
+IF ERRORLEVEL == 2  GOTO END
+IF ERRORLEVEL == 1 (
+echo Downloading
+cd reference
+..\winbin\curl.exe --insecure -O https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz
+echo Decompressing
+..\winbin\bgzip -d -@2 hs37d5.fa.gz
+echo Indexing hs37d5.fa.gz
+..\winbin\samtools faidx hs37d5.fa
+cd ..
+)
+echo .
+)
+echo .
+echo You need to have hg19.fa.gz in the reference directory
+echo Do you want to download it?
+CHOICE /C YN /M "Y/N"
+IF ERRORLEVEL == 2  GOTO END
+IF ERRORLEVEL == 1 (
+echo Downloading
+cd reference
+..\winbin\curl.exe --insecure -O https://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.fa.gz
+echo Decompressing
+..\winbin\bgzip -d -@2 hg19.fa.gz
+echo Indexing hg19.fa.gz
+..\winbin\samtools faidx hg19.fa
+cd ..
+)
+echo .
+)
 :: Prompt user for Population name
 set /p POPNAME=Enter Population name: 
 
@@ -30,10 +65,10 @@ set /p choice=Enter your choice (hs37d5 or hg19):
 
 if "%choice%"=="hs37d5" (
     echo Running command
-    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa.gz %bamlist1% | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
+    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa %bamlist1% | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
 ) else if "%choice%"=="hg19" (
     echo Running command
-    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa.gz %bamlist1% | ..\winbin\sed "s/chr//" | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
+    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa %bamlist1% | ..\winbin\sed "s/chr//" | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
 ) else (
     echo Invalid choice
 )
