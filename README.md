@@ -17,3 +17,5 @@ Notice! You have to decompress and index with samtools faidx both of the above r
 Simple instructions:
 
 Copy all of the bams you want to include in source directory and run the program. The result will be in target subdirectory.
+
+The Bash version works also on Windows using MSYS2 shell.
