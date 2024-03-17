@@ -76,3 +76,6 @@ if "%choice%"=="hs37d5" (
 )
 
 cd ..
+
+echo Process finished
+pause
