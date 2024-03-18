@@ -68,7 +68,7 @@ read -p "Enter Output name: " OUTPUTNAME
 
 # Navigate to the source directory and list all .bam files, storing them in bamlist1
 cd source
-bamlist1=($(ls *.bam))
+bamlist1=($(ls *.bam *.cram))
 IFS=" " bamlist_space="${bamlist1[*]}"
 
 # Initialize array2 as an empty array

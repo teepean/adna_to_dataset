@@ -46,8 +46,8 @@ set /p OUTPUTNAME=Enter Output name:
 
 :: Navigate to the source directory and list all .bam files, storing them in bamlist1
 cd source
-for /f "delims=" %%a in ('dir /b *.bam') do (
-    set bamlist1=!bamlist1! %%a
+for /f "delims=" %%a in ('dir /b *.bam *.cram') do (
+    set "bamlist1=!bamlist1! %%a"
 )
 
 :: Initialize array2 as an empty string
