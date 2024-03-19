@@ -13,7 +13,7 @@ cd reference
 ..\winbin\curl.exe --insecure -O https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz
 echo Decompressing
 ..\winbin\bgzip -d -@2 hs37d5.fa.gz
-echo Indexing hs37d5.fa.gz
+echo Indexing hs37d5.fa
 ..\winbin\samtools faidx hs37d5.fa
 cd ..
 )
@@ -32,7 +32,7 @@ cd reference
 ..\winbin\curl.exe --insecure -O https://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.fa.gz
 echo Decompressing
 ..\winbin\bgzip -d -@2 hg19.fa.gz
-echo Indexing hg19.fa.gz
+echo Indexing hg19.fa
 ..\winbin\samtools faidx hg19.fa
 cd ..
 )
@@ -46,7 +46,23 @@ set /p OUTPUTNAME=Enter Output name:
 
 :: Navigate to the source directory and list all .bam files, storing them in bamlist1
 cd source
+
+set "headerCheck="
+
 for /f "delims=" %%a in ('dir /b *.bam *.cram') do (
+    if "!headerCheck!"=="" (
+        set "headerCheck=%%a"
+        set HEADER_TEMP=header_temp.txt
+        :: Extract header to temp file
+        ..\winbin\samtools view -H !headerCheck! > !HEADER_TEMP!
+        :: Initialize flag
+        set FLAG=NEITHER
+
+        :: Check patterns
+        for /f "tokens=*" %%i in ('type "!HEADER_TEMP!" ^| findstr /b /g:..\patternhs37d5.txt') do set FLAG=HS37D5
+        for /f "tokens=*" %%i in ('type "!HEADER_TEMP!" ^| findstr /b /g:..\patternhg19.txt') do set FLAG=HG19
+        del "!HEADER_TEMP!"
+    )
     set "bamlist1=!bamlist1! %%a"
 )
 
@@ -62,20 +78,18 @@ for %%i in (%bamlist1%) do (
 :: Remove the first comma from array2_string
 set array2_string=%array2:~1%
 
-:: Prompt user for reference choice
-set /p choice=Enter your choice (hs37d5 or hg19): 
-
-if "%choice%"=="hs37d5" (
+if "!FLAG!"=="HS37D5" (
     echo Running command
     ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa %bamlist1% | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
-) else if "%choice%"=="hg19" (
+) else if "!FLAG!"=="HG19" (
     echo Running command
     ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa %bamlist1% | ..\winbin\sed "s/chr//" | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%
 ) else (
-    echo Invalid choice
+    echo Reference is not compatible 
+    pause
+    goto :eof
 )
 
-cd ..
+endlocal
 
-echo Process finished
 pause
