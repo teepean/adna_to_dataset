@@ -90,7 +90,7 @@ if "!FLAG!"=="HS37D5" (
     goto :eof
 )
 
-cd target
+cd ..\target
 ..\winbin\logdumper.exe
 ren console_buffer.txt %OUTPUTNAME%.stats.txt
 cd..
