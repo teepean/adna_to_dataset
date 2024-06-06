@@ -92,7 +92,7 @@ if "!FLAG!"=="HS37D5" (
 
 cd ..\target
 ..\winbin\logdumper.exe
-ren console_buffer.txt %OUTPUTNAME%.stats.txt
+ren console_buffer.txt %OUTPUTNAME%.logfile.txt
 cd..
 
 endlocal
