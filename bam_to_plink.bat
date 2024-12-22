@@ -1,4 +1,4 @@
-@echo off
+rem @echo off
 SETLOCAL EnableDelayedExpansion
 
 if not exist reference\hs37d5.fa (
@@ -80,20 +80,15 @@ set array2_string=%array2:~1%
 
 if "!FLAG!"=="HS37D5" (
     echo Running command
-    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa %bamlist1% | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%   > ../target/%OUTPUTNAME%.stats.txt 2>&1
+    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.1240K.pos -f ../reference/hs37d5.fa %bamlist1% | ..\winbin\pileupCaller --majorityCall --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%   > ../target/%OUTPUTNAME%.stats.txt 2>&1
 ) else if "!FLAG!"=="HG19" (
     echo Running command
-    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa %bamlist1% | ..\winbin\sed "s/chr//" | ..\winbin\pileupCaller --randomHaploid --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%   > ../target/%OUTPUTNAME%.stats.txt 2>&1
+    ..\winbin\samtools mpileup -B -q 30 -Q 30 -l ../positions/v42.4.hg19.pos -f ../reference/hg19.fa %bamlist1% | ..\winbin\sed "s/chr//" | ..\winbin\pileupCaller --majorityCall --sampleNames %array2_string% --samplePopName %POPNAME% -f ../positions/v42.4.1240K.snp -p ../target/%OUTPUTNAME%   > ../target/%OUTPUTNAME%.stats.txt 2>&1
 ) else (
     echo Reference is not compatible 
     pause
     goto :eof
 )
-
-cd target
-..\winbin\logdumper.exe
-ren console_buffer.txt %OUTPUTNAME%.stats.txt
-cd..
 
 endlocal
 
