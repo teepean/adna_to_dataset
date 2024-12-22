@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 SETLOCAL EnableDelayedExpansion
 
 if not exist reference\hs37d5.fa (
