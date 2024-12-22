@@ -19,3 +19,7 @@ Simple instructions:
 Copy all of the bams you want to include in source directory and run the program. The result will be in target subdirectory.
 
 The Bash version works also on Windows using MSYS2 shell.
+
+Powershell version can run from Powershell or from cmd:
+
+powershell .\bam_to_plink.ps1
