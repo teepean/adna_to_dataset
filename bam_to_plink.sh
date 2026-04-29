@@ -93,6 +93,27 @@ if [ ! -f reference/hg19.fa ]; then
     echo ""
 fi
 
+# Prompt user to choose positions set
+echo ""
+echo "Choose positions set:"
+echo "  1) v42.4.1240K (current)"
+echo "  2) v66.2M.aadr (new)"
+read -p "Enter choice [1-2]: " POSCHOICE
+case "$POSCHOICE" in
+    1) POSNAME="v42.4.1240K" ;;
+    2) POSNAME="v66.2M.aadr" ;;
+    *) echo "Invalid choice. Exiting."; exit 1 ;;
+esac
+
+POS_HS37D5="$BASEDIR/positions/$POSNAME.pos"
+POS_HG19="$BASEDIR/positions/$POSNAME.hg19.pos"
+SNP_FILE="$BASEDIR/positions/$POSNAME.snp"
+
+# Fall back to legacy snp filename for v42.4 (kept as v42.4.1240K.snp)
+if [ ! -f "$SNP_FILE" ] && [ "$POSNAME" = "v42.4.1240K" ]; then
+    SNP_FILE="$BASEDIR/positions/v42.4.1240K.snp"
+fi
+
 # Prompt user for Population name
 read -p "Enter Population name: " POPNAME
 
@@ -146,20 +167,37 @@ array2_string=$(IFS=,; echo "${array2[*]}")
 
 # Run appropriate command based on reference genome
 if [ "$FLAG" = "HS37D5" ]; then
+    # Legacy filename for v42.4 hs37d5 positions
+    if [ "$POSNAME" = "v42.4.1240K" ]; then
+        POS_FILE="$BASEDIR/positions/v42.4.1240K.pos"
+    else
+        POS_FILE="$POS_HS37D5"
+    fi
     echo "Running command"
-    samtools mpileup -B -q 30 -Q 20 -l "$BASEDIR/positions/v42.4.1240K.pos" -f "$BASEDIR/reference/hs37d5.fa" "${bamlist[@]}" | \
+    samtools mpileup -B -q 30 -Q 20 -l "$POS_FILE" -f "$BASEDIR/reference/hs37d5.fa" "${bamlist[@]}" | \
         awk 'BEGIN{OFS="\t"} {if($1=="X")$1=23; else if($1=="Y")$1=24; else if($1=="MT")$1=90; print}' | \
         $SORT_CMD -t "$(printf '\t')" -k1,1n -k2,2n | \
         pileupCaller --randomHaploid --sampleNames "$array2_string" --samplePopName "$POPNAME" \
-        -f "$BASEDIR/positions/v42.4.1240K.snp" -p "$BASEDIR/target/$OUTPUTNAME" > "$BASEDIR/target/$OUTPUTNAME.stats.txt" 2>&1
+        -f "$SNP_FILE" -p "$BASEDIR/target/$OUTPUTNAME" > "$BASEDIR/target/$OUTPUTNAME.stats.txt" 2>&1
 elif [ "$FLAG" = "HG19" ]; then
+    # Legacy filename for v42.4 hg19 positions
+    if [ "$POSNAME" = "v42.4.1240K" ]; then
+        POS_FILE="$BASEDIR/positions/v42.4.hg19.pos"
+    else
+        POS_FILE="$POS_HG19"
+        # Auto-generate chr-prefixed positions file from numeric one if missing
+        if [ ! -f "$POS_FILE" ] && [ -f "$BASEDIR/positions/$POSNAME.pos" ]; then
+            echo "Generating $POS_FILE from $POSNAME.pos"
+            awk '{print "chr"$0}' "$BASEDIR/positions/$POSNAME.pos" > "$POS_FILE"
+        fi
+    fi
     echo "Running command"
-    samtools mpileup -B -q 30 -Q 20 -l "$BASEDIR/positions/v42.4.hg19.pos" -f "$BASEDIR/reference/hg19.fa" "${bamlist[@]}" | \
+    samtools mpileup -B -q 30 -Q 20 -l "$POS_FILE" -f "$BASEDIR/reference/hg19.fa" "${bamlist[@]}" | \
         sed "s/chr//" | \
         awk 'BEGIN{OFS="\t"} {if($1=="X")$1=23; else if($1=="Y")$1=24; else if($1=="MT")$1=90; print}' | \
         $SORT_CMD -t "$(printf '\t')" -k1,1n -k2,2n | \
         pileupCaller --randomHaploid --sampleNames "$array2_string" --samplePopName "$POPNAME" \
-        -f "$BASEDIR/positions/v42.4.1240K.snp" -p "$BASEDIR/target/$OUTPUTNAME" > "$BASEDIR/target/$OUTPUTNAME.stats.txt" 2>&1
+        -f "$SNP_FILE" -p "$BASEDIR/target/$OUTPUTNAME" > "$BASEDIR/target/$OUTPUTNAME.stats.txt" 2>&1
 else
     echo "Reference is not compatible"
     exit 1

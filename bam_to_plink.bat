@@ -64,6 +64,22 @@ if not exist reference\hg19.fa (
     echo.
 )
 
+REM Prompt user to choose positions set
+echo.
+echo Choose positions set:
+echo   1) v42.4.1240K (current)
+echo   2) v66.2M.aadr (new)
+choice /C 12 /N /M "Enter choice [1-2]: "
+if errorlevel 2 (
+    set "POSNAME=v66.2M.aadr"
+) else (
+    set "POSNAME=v42.4.1240K"
+)
+
+REM Resolve snp file path (kept as v42.4.1240K.snp for legacy)
+set "SNPFILE=%BASEDIR%\positions\!POSNAME!.snp"
+if not exist "!SNPFILE!" if "!POSNAME!"=="v42.4.1240K" set "SNPFILE=%BASEDIR%\positions\v42.4.1240K.snp"
+
 REM Prompt user for Population name
 set /p POPNAME=Enter Population name:
 
@@ -96,13 +112,33 @@ for %%i in (!bamlist1!) do (
 )
 set "array2_string=!array2:~1!"
 
+REM Resolve positions file path based on reference and chosen positions set
+if "!FLAG!"=="HS37D5" (
+    if "!POSNAME!"=="v42.4.1240K" (
+        set "POSFILE=%BASEDIR%\positions\v42.4.1240K.pos"
+    ) else (
+        set "POSFILE=%BASEDIR%\positions\!POSNAME!.pos"
+    )
+) else if "!FLAG!"=="HG19" (
+    if "!POSNAME!"=="v42.4.1240K" (
+        set "POSFILE=%BASEDIR%\positions\v42.4.hg19.pos"
+    ) else (
+        set "POSFILE=%BASEDIR%\positions\!POSNAME!.hg19.pos"
+        set "SRCPOS=%BASEDIR%\positions\!POSNAME!.pos"
+        if not exist "!POSFILE!" if exist "!SRCPOS!" (
+            echo Generating !POSFILE! from !POSNAME!.pos
+            "%GAWK%" "{print \"chr\"$0}" "!SRCPOS!" > "!POSFILE!"
+        )
+    )
+)
+
 REM Run appropriate pipeline based on reference genome
 if "!FLAG!"=="HS37D5" (
     echo Running command
-    "%SAMTOOLS%" mpileup -B -q 30 -Q 20 -l "%BASEDIR%\positions\v42.4.1240K.pos" -f "%BASEDIR%\reference\hs37d5.fa" !bamlist1! | "%GAWK%" "BEGIN{OFS=\"\t\"} {if($1==\"X\")$1=23; else if($1==\"Y\")$1=24; else if($1==\"MT\")$1=90; print}" | "%USORT%" -t "	" -k1,1n -k2,2n | "%PILEUPCALLER%" --randomHaploid --sampleNames !array2_string! --samplePopName !POPNAME! -f "%BASEDIR%\positions\v42.4.1240K.snp" -p "%BASEDIR%\target\!OUTPUTNAME!" > "%BASEDIR%\target\!OUTPUTNAME!.stats.txt" 2>&1
+    "%SAMTOOLS%" mpileup -B -q 30 -Q 20 -l "!POSFILE!" -f "%BASEDIR%\reference\hs37d5.fa" !bamlist1! | "%GAWK%" "BEGIN{OFS=\"\t\"} {if($1==\"X\")$1=23; else if($1==\"Y\")$1=24; else if($1==\"MT\")$1=90; print}" | "%USORT%" -t "	" -k1,1n -k2,2n | "%PILEUPCALLER%" --randomHaploid --sampleNames !array2_string! --samplePopName !POPNAME! -f "!SNPFILE!" -p "%BASEDIR%\target\!OUTPUTNAME!" > "%BASEDIR%\target\!OUTPUTNAME!.stats.txt" 2>&1
 ) else if "!FLAG!"=="HG19" (
     echo Running command
-    "%SAMTOOLS%" mpileup -B -q 30 -Q 20 -l "%BASEDIR%\positions\v42.4.hg19.pos" -f "%BASEDIR%\reference\hg19.fa" !bamlist1! | "%SED%" "s/chr//" | "%GAWK%" "BEGIN{OFS=\"\t\"} {if($1==\"X\")$1=23; else if($1==\"Y\")$1=24; else if($1==\"MT\")$1=90; print}" | "%USORT%" -t "	" -k1,1n -k2,2n | "%PILEUPCALLER%" --randomHaploid --sampleNames !array2_string! --samplePopName !POPNAME! -f "%BASEDIR%\positions\v42.4.1240K.snp" -p "%BASEDIR%\target\!OUTPUTNAME!" > "%BASEDIR%\target\!OUTPUTNAME!.stats.txt" 2>&1
+    "%SAMTOOLS%" mpileup -B -q 30 -Q 20 -l "!POSFILE!" -f "%BASEDIR%\reference\hg19.fa" !bamlist1! | "%SED%" "s/chr//" | "%GAWK%" "BEGIN{OFS=\"\t\"} {if($1==\"X\")$1=23; else if($1==\"Y\")$1=24; else if($1==\"MT\")$1=90; print}" | "%USORT%" -t "	" -k1,1n -k2,2n | "%PILEUPCALLER%" --randomHaploid --sampleNames !array2_string! --samplePopName !POPNAME! -f "!SNPFILE!" -p "%BASEDIR%\target\!OUTPUTNAME!" > "%BASEDIR%\target\!OUTPUTNAME!.stats.txt" 2>&1
 ) else (
     echo Reference is not compatible
     popd

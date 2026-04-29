@@ -41,6 +41,7 @@ function Invoke-Pipeline {
         [string]$ReferenceType,
         [string]$PopName,
         [string]$OutputName,
+        [string]$PosName,
         [string]$BatchSuffix = ""
     )
 
@@ -49,16 +50,32 @@ function Invoke-Pipeline {
 
     $outPath   = Join-Path $BASEDIR "target\$OutputName$BatchSuffix"
     $statsPath = Join-Path $BASEDIR "target\$OutputName$BatchSuffix.stats.txt"
-    $snpPath   = Join-Path $BASEDIR "positions\v42.4.1240K.snp"
+    $snpPath   = Join-Path $BASEDIR "positions\$PosName.snp"
+    if (-not (Test-Path $snpPath) -and $PosName -eq "v42.4.1240K") {
+        $snpPath = Join-Path $BASEDIR "positions\v42.4.1240K.snp"
+    }
     $gawkExpr  = 'BEGIN{OFS=\"\t\"} {if($1==\"X\")$1=23; else if($1==\"Y\")$1=24; else if($1==\"MT\")$1=90; print}'
     $tab       = "`t"
 
     if ($ReferenceType -eq "HS37D5") {
-        $posPath = Join-Path $BASEDIR "positions\v42.4.1240K.pos"
+        if ($PosName -eq "v42.4.1240K") {
+            $posPath = Join-Path $BASEDIR "positions\v42.4.1240K.pos"
+        } else {
+            $posPath = Join-Path $BASEDIR "positions\$PosName.pos"
+        }
         $refPath = Join-Path $BASEDIR "reference\hs37d5.fa"
         $prefix  = "`"$SAMTOOLS`" mpileup -B -q 30 -Q 20 -l `"$posPath`" -f `"$refPath`" $bamlist_space"
     } else {
-        $posPath = Join-Path $BASEDIR "positions\v42.4.hg19.pos"
+        if ($PosName -eq "v42.4.1240K") {
+            $posPath = Join-Path $BASEDIR "positions\v42.4.hg19.pos"
+        } else {
+            $posPath = Join-Path $BASEDIR "positions\$PosName.hg19.pos"
+            $srcPos  = Join-Path $BASEDIR "positions\$PosName.pos"
+            if (-not (Test-Path $posPath) -and (Test-Path $srcPos)) {
+                Write-Host "Generating $posPath from $PosName.pos"
+                Get-Content $srcPos | ForEach-Object { "chr$_" } | Set-Content -Path $posPath -Encoding ASCII
+            }
+        }
         $refPath = Join-Path $BASEDIR "reference\hg19.fa"
         $prefix  = "`"$SAMTOOLS`" mpileup -B -q 30 -Q 20 -l `"$posPath`" -f `"$refPath`" $bamlist_space | `"$SED`" `"s/chr//`""
     }
@@ -83,6 +100,7 @@ function Invoke-FilesInBatch {
         [string]$ReferenceType,
         [string]$PopName,
         [string]$OutputName,
+        [string]$PosName,
         [int]$BatchSize = 10
     )
 
@@ -94,7 +112,7 @@ function Invoke-FilesInBatch {
         Write-Host "Processing batch $currentBatch of $totalBatches"
 
         try {
-            Invoke-Pipeline -FileList $batch -ReferenceType $ReferenceType -PopName $PopName -OutputName $OutputName -BatchSuffix "_batch$currentBatch"
+            Invoke-Pipeline -FileList $batch -ReferenceType $ReferenceType -PopName $PopName -OutputName $OutputName -PosName $PosName -BatchSuffix "_batch$currentBatch"
         }
         catch {
             Write-Error "Batch $currentBatch failed. Error details: $_"
@@ -146,6 +164,21 @@ if (-not (Test-Path "reference\hg19.fa")) {
     Write-Host ""
 }
 
+# Prompt user to choose positions set
+Write-Host ""
+Write-Host "Choose positions set:"
+Write-Host "  1) v42.4.1240K (current)"
+Write-Host "  2) v66.2M.aadr (new)"
+$POSCHOICE = Read-Host "Enter choice [1-2]"
+switch ($POSCHOICE) {
+    "1" { $POSNAME = "v42.4.1240K" }
+    "2" { $POSNAME = "v66.2M.aadr" }
+    default {
+        Write-Host "Invalid choice. Exiting."
+        exit 1
+    }
+}
+
 # Prompt for Population and Output names
 $POPNAME    = Read-Host "Enter Population name"
 $OUTPUTNAME = Read-Host "Enter Output name"
@@ -183,12 +216,12 @@ if ($FLAG -eq "NEITHER") {
 Write-Host "Attempting to process all files at once..."
 
 try {
-    Invoke-Pipeline -FileList $bamlist1 -ReferenceType $FLAG -PopName $POPNAME -OutputName $OUTPUTNAME
+    Invoke-Pipeline -FileList $bamlist1 -ReferenceType $FLAG -PopName $POPNAME -OutputName $OUTPUTNAME -PosName $POSNAME
 }
 catch {
     Write-Error "Command failed. Error details: $_"
     Write-Host "Attempting batch processing instead..."
-    $batchSuccess = Invoke-FilesInBatch -FileList $bamlist1 -ReferenceType $FLAG -PopName $POPNAME -OutputName $OUTPUTNAME
+    $batchSuccess = Invoke-FilesInBatch -FileList $bamlist1 -ReferenceType $FLAG -PopName $POPNAME -OutputName $OUTPUTNAME -PosName $POSNAME
     if (-not $batchSuccess) {
         Write-Error "Both single command and batch processing failed"
         Pop-Location
